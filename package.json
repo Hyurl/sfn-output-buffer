@@ -1,0 +1,27 @@
+{
+    "name": "sfn-output-buffer",
+    "version": "0.1.0",
+    "description": "\"Simple Friendly Node.js Output Buffer.\"",
+    "main": "index.js",
+    "scripts": {
+        "test": "node test.js"
+    },
+    "keywords": [
+        "sfn",
+        "buffer"
+    ],
+    "author": {
+        "name": "Ayon Lee",
+        "email": "i@hyurl.com",
+        "url": "hyurl.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hyurl/sfn-output-buffer.git"
+    },
+    "bugs": {
+        "url": "https://github.com/Hyurl/sfn-output-buffer/issues",
+        "email": "i@hyurl.com"
+    },
+    "license": "MIT"
+}
