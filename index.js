@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const util = require("util");
-const EventEmitter = require("events");
 const { EOL } = require("os");
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const Buffers = {};
