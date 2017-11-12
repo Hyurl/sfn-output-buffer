@@ -50,7 +50,7 @@ var i = setInterval(() => {
 - `[options]` Include these options:
     - `ttl` Time to live, default is `1000`ms.
     - `size` Buffer size, if set, then `ttl` will be ignored.
-    - `filename` A disk file for storing data.
+    - `filename` Flush buffer to a disk file.
     - `fileSize` Maximum size of the output file.
     - `limitHandler` A function called when the output file's size up to 
         limit, rewrite by default.
