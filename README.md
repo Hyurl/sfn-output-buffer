@@ -45,7 +45,7 @@ var i = setInterval(() => {
     destroying.
 - `ob.closed` Whether the buffer is closed.
 
-## new OutputBuffer()
+### new OutputBuffer()
 
 - `[options]` Include these options:
     - `ttl` Time to live, default is `1000`ms.
