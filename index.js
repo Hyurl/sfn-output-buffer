@@ -2,34 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const util = require("util");
 const { EOL } = require("os");
-const CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const Buffers = {};
-
-/** 
- * Generates a random integer.
- * @param {Number} min The minimum number.
- * @param {Number} max The maximum number (inclusive).
- */
-function rand(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-/** 
- * Generates a random string.
- * @param {Number} length The string length.
- * @param {String} chars The possible characters.
- */
-function randStr(length = 5, chars = "") {
-    chars = chars || CHARS;
-    var str = "",
-        max = chars.length - 1;
-    for (var i = 0; i < length; i++) {
-        str += chars[rand(0, max)];
-    }
-    return str;
-}
 
 /** 
  * Makes a directory recursively.
@@ -73,7 +45,6 @@ class OutputBuffer {
         if (typeof options == "string") {
             options = { filename: options };
         }
-        this.id = options.filename || randStr(16);
         this.ttl = options.ttl || 1000;
         this.size = options.size || 0;
         this.filename = options.filename; // Flush to file when expires.
@@ -91,10 +62,8 @@ class OutputBuffer {
         });
         this.EOL = this.filename ? EOL : "\n";
         this.timer = null;
-
-        if (Buffers[this.id] === undefined) {
-            Buffers[this.id] = null;
-        }
+        this.buffer = null;
+        this.closed = false; // Whether the buffer is closed.
     }
 
     /**
@@ -103,7 +72,7 @@ class OutputBuffer {
      */
     flush(cb = null) {
         cb = cb || (() => {});
-        if (Buffers[this.id].length === 0) return cb();
+        if (this.buffer === null || this.buffer.length === 0) return cb();
         if (this.filename) {
             var data = this.get() + this.EOL;
             this.clean();
@@ -162,40 +131,38 @@ class OutputBuffer {
         }
         if (this.closed) {
             throw new Error("Cannot push data after closing the buffer.");
-        } else if (Buffers[this.id] === null) {
-            Buffers[this.id] = [];
-            if (!this.size && !this.timer) {
-                var next = () => {
-                    this.timer = setTimeout(() => {
-                        this.flush(next);
-                    }, this.ttl);
-                };
-                next();
-            }
-        } else if (this.size) {
-            var size = Buffer.byteLength(this.get() + data);
-            if (size >= this.size) {
-                this.flush();
-            }
+        } else if (this.buffer === null && !this.size && !this.timer) {
+            var next = () => {
+                this.timer = setTimeout(() => {
+                    this.flush(next);
+                }, this.ttl);
+            };
+            next();
         }
 
-        Buffers[this.id].push(data);
+        data = this.buffer === null ? data : this.buffer + this.EOL + data;
+        this.buffer = Buffer.from(data);
+
+        if (this.size && this.buffer && this.buffer.length >= this.size) {
+            this.flush();
+        }
     }
 
     /** Gets buffer contents. */
     get() {
-        return Buffers[this.id] ? Buffers[this.id].join(this.EOL) : null;
+        return this.buffer === null ? null : this.buffer.toString();
     }
 
     /** Cleans buffer contents without flushing. */
     clean() {
-        Buffers[this.id] = [];
+        this.buffer = null;
     }
 
     /** Destroys the buffer without flushing. */
     destroy() {
+        this.closed = true;
         clearTimeout(this.timer);
-        delete Buffers[this.id];
+        this.clean();
     }
 
     /**
@@ -203,11 +170,6 @@ class OutputBuffer {
      */
     close() {
         this.flush(() => this.destroy());
-    }
-
-    /** Whether the buffer is closed. */
-    get closed() {
-        return Buffers[this.id] === undefined;
     }
 }
 

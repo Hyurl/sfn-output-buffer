@@ -94,10 +94,3 @@ var ob = new OutputBuffer({
     }
 });
 ```
-
-## Thread Safety
-
-This module is thread-safe, that means no matter how many times you create a 
-new instance, if only they are specified to the same output file, then they 
-will share the same memory storage of the buffer, and only one timer will be 
-generated for flushing data to the file.
