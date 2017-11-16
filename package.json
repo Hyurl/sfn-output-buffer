@@ -23,5 +23,8 @@
         "url": "https://github.com/Hyurl/sfn-output-buffer/issues",
         "email": "i@hyurl.com"
     },
-    "license": "MIT"
+    "license": "MIT",
+    "dependencies": {
+        "fs-extra": "^4.0.2"
+    }
 }

@@ -1,28 +1,11 @@
-const fs = require("fs");
 const path = require("path");
 const util = require("util");
+const fs = require("fs-extra");
 const { EOL } = require("os");
-
-/** 
- * Makes a directory recursively.
- * @param {String} dir The directory path.
- * @param {Number} mode Default is 0777.
- */
-function xmkdir(dir, mode = 0777) {
-    dir = path.normalize(dir).replace(/\\/g, "/").split("/");
-    var _dir = [];
-    for (var i = 0; i < dir.length; i++) {
-        _dir.push(dir[i]);
-        let dirname = _dir.join("/");
-        if (dirname && !fs.existsSync(dirname)) {
-            fs.mkdirSync(dirname, mode);
-        }
-    }
-}
 
 /**
  * Output buffer, data are firstly stored in memory, then after a TTL time, 
- * flushed to a disk file or the console.
+ * flushed to a disk file or to the console.
  */
 class OutputBuffer {
     /**
@@ -50,12 +33,11 @@ class OutputBuffer {
         this.filename = options.filename; // Flush to file when expires.
         this.fileSize = options.fileSize || 1024 * 1024 * 2; // 2 MB.
         this.limitHandler = options.limitHandler || ((file, data, next) => {
-            try {
-                fs.writeFileSync(file, data);
+            fs.writeFile(file, data, err => {
+                if (err)
+                    this.errorHandler(err);
                 next();
-            } catch (e) {
-                this.errorHandler(e);
-            }
+            });
         });
         this.errorHandler = options.errorHandler || (err => {
             console.error(err);
@@ -74,34 +56,39 @@ class OutputBuffer {
         cb = cb || (() => {});
         if (this.buffer === null || this.buffer.length === 0) return cb();
         if (this.filename) {
-            var data = this.get() + this.EOL;
+            var data = this.get() + this.EOL,
+                handleError = (e) => {
+                    this.errorHandler(e);
+                    return cb();
+                };
             this.clean();
-            setImmediate(() => { // Asynchronize the procedure.
-                try {
-                    if (fs.existsSync(this.filename)) {
-                        // File exists, test file size.
-                        var stat = fs.statSync(this.filename),
-                            size = stat.size + Buffer.byteLength(data);
+            fs.exists(this.filename, exists => {
+                if (exists) {
+                    fs.stat(this.filename, (err, stat) => {
+                        if (err)
+                            return handleError(err);
+                        var size = stat.size + Buffer.byteLength(data);
                         if (size >= this.fileSize) {
                             this.limitHandler(this.filename, data, cb);
                         } else {
-                            // if not up to limit, then append contents.
-                            fs.appendFileSync(this.filename, data);
+                            fs.appendFile(this.filename, data, err => {
+                                if (err)
+                                    return handleError(err);
+                                cb();
+                            });
+                        }
+                    });
+                } else {
+                    var dirname = path.dirname(this.filename);
+                    fs.ensureDir(dirname, err => {
+                        if (err)
+                            return handleError(err);
+                        fs.writeFile(this.filename, data, err => {
+                            if (err)
+                                return handleError(err);
                             cb();
-                        }
-                    } else {
-                        var dirname = path.dirname(this.filename);
-                        if (!fs.existsSync(dirname)) {
-                            // If the directory doesn't exist, create a new one.
-                            xmkdir(dirname);
-                        }
-                        // File not exists, create a new one.
-                        fs.writeFileSync(this.filename, data);
-                        cb();
-                    }
-                } catch (e) {
-                    this.errorHandler(e);
-                    cb();
+                        });
+                    });
                 }
             });
         } else {
