@@ -127,11 +127,17 @@ class OutputBuffer {
             next();
         }
 
-        data = this.buffer === null ? data : this.buffer + this.EOL + data;
-        this.buffer = Buffer.from(data);
-
-        if (this.size && this.buffer && this.buffer.length >= this.size) {
-            this.flush();
+        if (this.buffer) {
+            data = this.EOL + data;
+            if (this.size) {
+                var size = Buffer.byteLength(data) + this.buffer.length;
+                if (size >= this.size) {
+                    this.flush();
+                }
+            }
+            this.buffer = Buffer.from(this.buffer + data);
+        } else {
+            this.buffer = Buffer.from(data);
         }
     }
 
