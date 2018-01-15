@@ -11,7 +11,7 @@ class OutputBuffer {
     /**
      * Creates a new output buffer.
      * 
-     * @param {String|Object} options Include these options:
+     * @param {string|object} options Include these options:
      *  - `ttl` Time to live, default is `1000`ms.
      *  - `size` Buffer size, if set, then `ttl` will be ignored.
      *  - `filename` Flush buffer to a disk file.
@@ -53,7 +53,7 @@ class OutputBuffer {
      * @param {Function} cb 
      */
     flush(cb = null) {
-        cb = cb || (() => {});
+        cb = cb || (() => { });
         if (this.buffer === null || this.buffer.length === 0) return cb();
         if (this.filename) {
             var data = this.get() + this.EOL,
@@ -100,10 +100,10 @@ class OutputBuffer {
 
     /**
      * Pushes data into the buffer.
-     * @param {Any} data The data needs to be stored.
+     * @param data The data needs to be stored.
      */
     push(...data) {
-        if (arguments.length > 1) {
+        if (data.length > 1) {
             for (let part of data) {
                 this.push(part);
             }
@@ -143,7 +143,7 @@ class OutputBuffer {
 
     /** Gets buffer contents. */
     get() {
-        return this.buffer === null ? null : this.buffer.toString();
+        return this.buffer && this.buffer.toString();
     }
 
     /** Cleans buffer contents without flushing. */

@@ -36,8 +36,8 @@ var i = setInterval(() => {
 
 ## API
 
-- `new OutputBuffer([options: any])` Creates a new output buffer.
-- `ob.push(...data: any)` Pushes data into the buffer.
+- `new OutputBuffer()` Creates a new output buffer.
+- `ob.push(...data: any[])` Pushes data into the buffer.
 - `ob.get(): string` Gets buffer contents.
 - `ob.clean()` Cleans buffer contents without flushing.
 - `ob.destroy()` Destroys the buffer without flushing.
@@ -47,18 +47,20 @@ var i = setInterval(() => {
 
 ### new OutputBuffer()
 
-- `[options]` Include these options:
-    - `ttl` Time to live, default is `1000`ms.
-    - `size` Buffer size, if set, then `ttl` will be ignored.
-    - `filename` Flush buffer to a disk file.
-    - `fileSize` Maximum size of the output file.
-    - `limitHandler` A function called when the output file's size up to 
-        limit, rewrite by default.
-    - `errorHandler` A function called when any error occurred in the 
-        asynchronous timer scope.
-    
-    If this parameter is passed as a string, then it will be treated as 
-    a `filename`.
+- `new OutputBuffer(filename?: string)`
+- `new OutputBuffer(options?: object)` Creates a new output buffer.
+    - `options` Include these options:
+        - `ttl` Time to live, default is `1000`ms.
+        - `size` Buffer size, if set, then `ttl` will be ignored.
+        - `filename` Flush buffer to a disk file.
+        - `fileSize` Maximum size of the output file.
+        - `limitHandler` A function called when the output file's size up to 
+            limit, rewrite by default.
+        - `errorHandler` A function called when any error occurred in the 
+            asynchronous timer scope.
+        
+        If this parameter is passed as a string, then it will be treated as 
+        a `filename`.
 
 ```javascript
 // Simplest way, buffer will be flushed to console every 1000 ms.
