@@ -16,11 +16,14 @@ var file1 = "logs/example1.log",
 describe("new OutputBuffer()", () => {
     describe("new OutputBuffer()", () => {
         it("should create instance without arguments", () => {
-            let ob = new OutputBuffer();
+            let ob = new OutputBuffer(),
+                expected = Object.assign({}, ob);
 
-            assert.deepEqual(ob, {
+            delete expected.timer;
+
+            assert.ok(typeof ob.timer == "object");
+            assert.deepStrictEqual(expected, {
                 closed: false,
-                timer: null,
                 buffer: null,
                 ttl: 1000,
                 size: undefined,
@@ -30,16 +33,21 @@ describe("new OutputBuffer()", () => {
                 errorHandler: OutputBuffer.Options.errorHandler,
                 EOL: "\n"
             });
+
+            ob.close();
         });
     });
 
     describe("new OutputBuffer(filename: string)", () => {
         it("should create instance without arguments", () => {
-            let ob = new OutputBuffer(file1);
+            let ob = new OutputBuffer(file1),
+                expected = Object.assign({}, ob);
 
-            assert.deepEqual(ob, {
+            delete expected.timer;
+
+            assert.ok(typeof ob.timer == "object");
+            assert.deepEqual(expected, {
                 closed: false,
-                timer: null,
                 buffer: null,
                 ttl: 1000,
                 size: undefined,
@@ -49,6 +57,8 @@ describe("new OutputBuffer()", () => {
                 errorHandler: OutputBuffer.Options.errorHandler,
                 EOL
             });
+            
+            ob.close();
         });
     });
 

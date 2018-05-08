@@ -35,13 +35,13 @@ namespace OutputBuffer {
 }
 
 class OutputBuffer implements OutputBuffer.Options {
-    ttl: number;
-    size: number;
-    filename: string;
-    fileSize: number;
-    limitHandler: OutputBuffer.Options["limitHandler"];
-    errorHandler: OutputBuffer.Options["errorHandler"];
-    EOL: string;
+    readonly ttl: number;
+    readonly size: number;
+    readonly filename: string;
+    readonly fileSize: number;
+    readonly limitHandler: OutputBuffer.Options["limitHandler"];
+    readonly errorHandler: OutputBuffer.Options["errorHandler"];
+    readonly EOL: string;
 
     /** Whether the output buffer is closed. */
     closed: boolean = false;
@@ -88,6 +88,14 @@ class OutputBuffer implements OutputBuffer.Options {
                     this.close();
                 }
             });
+        } else {
+            let next = () => {
+                this.timer = setTimeout(() => {
+                    this.flush(next);
+                }, this.ttl);
+            };
+
+            next();
         }
     }
 
@@ -182,16 +190,6 @@ class OutputBuffer implements OutputBuffer.Options {
             buf = Buffer.from(format(contents));
         }
 
-        if (this.buffer === null && !this.size && !this.timer) {
-            let next = () => {
-                this.timer = setTimeout(() => {
-                    this.flush(next);
-                }, this.ttl);
-            };
-
-            next();
-        }
-
         if (this.buffer) {
             let eolBuf = Buffer.from(this.EOL);
 
@@ -200,6 +198,8 @@ class OutputBuffer implements OutputBuffer.Options {
 
                 if (size >= this.size) {
                     this.flush();
+                    this.buffer = buf;
+                    return;
                 }
             }
 

@@ -25,6 +25,14 @@ class OutputBuffer {
                 }
             });
         }
+        else {
+            let next = () => {
+                this.timer = setTimeout(() => {
+                    this.flush(next);
+                }, this.ttl);
+            };
+            next();
+        }
     }
     /** Flushes the output buffer immediately. */
     flush(cb) {
@@ -105,20 +113,14 @@ class OutputBuffer {
         else {
             buf = Buffer.from(util_1.format(contents));
         }
-        if (this.buffer === null && !this.size && !this.timer) {
-            let next = () => {
-                this.timer = setTimeout(() => {
-                    this.flush(next);
-                }, this.ttl);
-            };
-            next();
-        }
         if (this.buffer) {
             let eolBuf = Buffer.from(this.EOL);
             if (this.size) {
                 let size = this.buffer.length + eolBuf.length + buf.length;
                 if (size >= this.size) {
                     this.flush();
+                    this.buffer = buf;
+                    return;
                 }
             }
             this.buffer = Buffer.concat([this.buffer, eolBuf, buf]);
