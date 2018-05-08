@@ -39,7 +39,7 @@ describe("new OutputBuffer()", () => {
     });
 
     describe("new OutputBuffer(filename: string)", () => {
-        it("should create instance without arguments", () => {
+        it("should create instance with a filename", () => {
             let ob = new OutputBuffer(file1),
                 expected = Object.assign({}, ob);
 
@@ -63,7 +63,7 @@ describe("new OutputBuffer()", () => {
     });
 
     describe("new OutputBuffer(options: OutputBuffer.Options)", () => {
-        it("should create instance without arguments", () => {
+        it("should create instance with options", () => {
             let ob = new OutputBuffer({
                 filename: file2,
                 size: 4096
