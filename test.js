@@ -20,21 +20,28 @@ describe("new OutputBuffer()", () => {
                 expected = Object.assign({}, ob);
 
             delete expected.timer;
+            delete expected.queue;
 
-            assert.ok(typeof ob.timer == "object");
-            assert.deepStrictEqual(expected, {
-                closed: false,
-                buffer: null,
-                ttl: 1000,
-                size: undefined,
-                filename: undefined,
-                fileSize: 2097152,
-                limitHandler: OutputBuffer.Options.limitHandler,
-                errorHandler: OutputBuffer.Options.errorHandler,
-                EOL: "\n"
-            });
+            try {
+                assert.ok(typeof ob.queue == "object");
+                assert.ok(typeof ob.timer == "object");
+                assert.deepStrictEqual(expected, {
+                    closed: false,
+                    buffer: null,
+                    ttl: 1000,
+                    size: undefined,
+                    filename: undefined,
+                    fileSize: 2097152,
+                    limitHandler: OutputBuffer.Options.limitHandler,
+                    errorHandler: OutputBuffer.Options.errorHandler,
+                    EOL: "\n"
+                });
 
-            ob.close();
+                ob.close();
+            } catch (err) {
+                ob.close();
+                throw err;
+            }
         });
     });
 
@@ -44,21 +51,28 @@ describe("new OutputBuffer()", () => {
                 expected = Object.assign({}, ob);
 
             delete expected.timer;
+            delete expected.queue;
 
-            assert.ok(typeof ob.timer == "object");
-            assert.deepEqual(expected, {
-                closed: false,
-                buffer: null,
-                ttl: 1000,
-                size: undefined,
-                filename: file1,
-                fileSize: 2097152,
-                limitHandler: OutputBuffer.Options.limitHandler,
-                errorHandler: OutputBuffer.Options.errorHandler,
-                EOL
-            });
-            
-            ob.close();
+            try {
+                assert.ok(typeof ob.queue == "object");
+                assert.ok(typeof ob.timer == "object");
+                assert.deepEqual(expected, {
+                    closed: false,
+                    buffer: null,
+                    ttl: 1000,
+                    size: undefined,
+                    filename: file1,
+                    fileSize: 2097152,
+                    limitHandler: OutputBuffer.Options.limitHandler,
+                    errorHandler: OutputBuffer.Options.errorHandler,
+                    EOL
+                });
+
+                ob.close();
+            } catch (err) {
+                ob.close();
+                throw err;
+            }
         });
     });
 
@@ -69,18 +83,29 @@ describe("new OutputBuffer()", () => {
                 size: 4096
             });
 
-            assert.deepEqual(ob, {
-                closed: false,
-                timer: null,
-                buffer: null,
-                ttl: undefined,
-                size: 4096,
-                filename: file2,
-                fileSize: 2097152,
-                limitHandler: OutputBuffer.Options.limitHandler,
-                errorHandler: OutputBuffer.Options.errorHandler,
-                EOL
-            });
+            let expected = Object.assign({}, ob);
+
+            delete expected.queue;
+
+            try {
+                assert.deepEqual(expected, {
+                    closed: false,
+                    timer: null,
+                    buffer: null,
+                    ttl: undefined,
+                    size: 4096,
+                    filename: file2,
+                    fileSize: 2097152,
+                    limitHandler: OutputBuffer.Options.limitHandler,
+                    errorHandler: OutputBuffer.Options.errorHandler,
+                    EOL
+                });
+
+                ob.close();
+            } catch (err) {
+                ob.close();
+                throw err;
+            }
         });
     });
 

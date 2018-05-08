@@ -2,6 +2,7 @@ import { dirname } from "path";
 import { EOL } from "os";
 import { format } from "util";
 import * as fs from "fs-extra";
+import { Queue } from "dynamic-queue";
 
 namespace OutputBuffer {
     export interface Options {
@@ -48,6 +49,7 @@ class OutputBuffer implements OutputBuffer.Options {
 
     private timer: NodeJS.Timer = null;
     private buffer: Buffer = null;
+    private queue: Queue;
 
     static Options: OutputBuffer.Options = {
         ttl: 1000,
@@ -79,6 +81,7 @@ class OutputBuffer implements OutputBuffer.Options {
 
         Object.assign(this, (<typeof OutputBuffer>this.constructor).Options, options);
         this.EOL = this.filename ? EOL : "\n";
+        this.queue = new Queue();
 
         if (this.size) {
             this.ttl = undefined;
@@ -117,48 +120,53 @@ class OutputBuffer implements OutputBuffer.Options {
 
         data += this.EOL;
 
-        let handleError = (err: Error) => {
+        let handleError = (err: Error, next: Function) => {
             this.errorHandler.call(this, err);
-            return cb();
+            cb();
+            next();
         };
-        let writeFile = (data: string) => {
+        let writeFile = (data: string, next: Function) => {
             fs.ensureDir(dirname(this.filename), err => {
                 if (err)
-                    return handleError(err);
+                    return handleError(err, next);
 
                 fs.writeFile(this.filename, data, "utf8", err => {
                     if (err)
-                        return handleError(err);
+                        return handleError(err, next);
 
-                    return cb();
+                    cb();
+                    next();
                 });
             });
         };
 
-        fs.exists(this.filename, exists => {
-            if (exists) {
-                fs.stat(this.filename, (err, stat) => {
-                    if (err)
-                        return handleError(err);
-
-                    let size = stat.size + Buffer.byteLength(data);
-
-                    if (size < this.fileSize) {
-                        fs.appendFile(this.filename, data, err => {
-                            if (err)
-                                return handleError(err);
-
-                            return cb();
-                        });
-                    } else {
-                        this.limitHandler.call(this, this.filename, data, () => {
-                            writeFile(data);
-                        });
-                    }
-                });
-            } else {
-                return writeFile(data);
-            }
+        this.queue.push((next) => {
+            fs.exists(this.filename, exists => {
+                if (exists) {
+                    fs.stat(this.filename, (err, stat) => {
+                        if (err)
+                            return handleError(err, next);
+    
+                        let size = stat.size + Buffer.byteLength(data);
+    
+                        if (size < this.fileSize) {
+                            fs.appendFile(this.filename, data, err => {
+                                if (err)
+                                    return handleError(err, next);
+    
+                                cb();
+                                next();
+                            });
+                        } else {
+                            this.limitHandler.call(this, this.filename, data, () => {
+                                writeFile(data, next);
+                            });
+                        }
+                    });
+                } else {
+                    return writeFile(data, next);
+                }
+            });
         });
     }
 

@@ -3,6 +3,7 @@ const path_1 = require("path");
 const os_1 = require("os");
 const util_1 = require("util");
 const fs = require("fs-extra");
+const dynamic_queue_1 = require("dynamic-queue");
 class OutputBuffer {
     constructor(filename, options = null) {
         /** Whether the output buffer is closed. */
@@ -17,6 +18,7 @@ class OutputBuffer {
         }
         Object.assign(this, this.constructor.Options, options);
         this.EOL = this.filename ? os_1.EOL : "\n";
+        this.queue = new dynamic_queue_1.Queue();
         if (this.size) {
             this.ttl = undefined;
             process.on("beforeExit", (code) => {
@@ -46,44 +48,49 @@ class OutputBuffer {
             return cb();
         }
         data += this.EOL;
-        let handleError = (err) => {
+        let handleError = (err, next) => {
             this.errorHandler.call(this, err);
-            return cb();
+            cb();
+            next();
         };
-        let writeFile = (data) => {
+        let writeFile = (data, next) => {
             fs.ensureDir(path_1.dirname(this.filename), err => {
                 if (err)
-                    return handleError(err);
+                    return handleError(err, next);
                 fs.writeFile(this.filename, data, "utf8", err => {
                     if (err)
-                        return handleError(err);
-                    return cb();
+                        return handleError(err, next);
+                    cb();
+                    next();
                 });
             });
         };
-        fs.exists(this.filename, exists => {
-            if (exists) {
-                fs.stat(this.filename, (err, stat) => {
-                    if (err)
-                        return handleError(err);
-                    let size = stat.size + Buffer.byteLength(data);
-                    if (size < this.fileSize) {
-                        fs.appendFile(this.filename, data, err => {
-                            if (err)
-                                return handleError(err);
-                            return cb();
-                        });
-                    }
-                    else {
-                        this.limitHandler.call(this, this.filename, data, () => {
-                            writeFile(data);
-                        });
-                    }
-                });
-            }
-            else {
-                return writeFile(data);
-            }
+        this.queue.push((next) => {
+            fs.exists(this.filename, exists => {
+                if (exists) {
+                    fs.stat(this.filename, (err, stat) => {
+                        if (err)
+                            return handleError(err, next);
+                        let size = stat.size + Buffer.byteLength(data);
+                        if (size < this.fileSize) {
+                            fs.appendFile(this.filename, data, err => {
+                                if (err)
+                                    return handleError(err, next);
+                                cb();
+                                next();
+                            });
+                        }
+                        else {
+                            this.limitHandler.call(this, this.filename, data, () => {
+                                writeFile(data, next);
+                            });
+                        }
+                    });
+                }
+                else {
+                    return writeFile(data, next);
+                }
+            });
         });
     }
     /** Pushes data into the buffer. */
