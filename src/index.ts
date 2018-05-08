@@ -30,7 +30,7 @@ namespace OutputBuffer {
          * End of line, when `filename` is set, the default value is 
          * `os.EOL`, otherwise, it's `\n`.
           */
-        EOL: string;
+        EOL?: string;
     }
 }
 
