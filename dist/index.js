@@ -15,7 +15,7 @@ class OutputBuffer {
         else {
             options = Object.assign({ filename }, options);
         }
-        Object.assign(this, OutputBuffer.Options, options);
+        Object.assign(this, this.constructor.Options, options);
         this.EOL = this.filename ? os_1.EOL : "\n";
         if (this.size) {
             this.ttl = undefined;

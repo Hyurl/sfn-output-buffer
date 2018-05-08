@@ -77,7 +77,7 @@ class OutputBuffer implements OutputBuffer.Options {
             options = Object.assign({ filename }, options);
         }
 
-        Object.assign(this, OutputBuffer.Options, options);
+        Object.assign(this, (<typeof OutputBuffer>this.constructor).Options, options);
         this.EOL = this.filename ? EOL : "\n";
 
         if (this.size) {
