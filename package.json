@@ -1,6 +1,6 @@
 {
     "name": "sfn-output-buffer",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "description": "Simple Friendly Node.js Output Buffer.",
     "main": "dist/index.js",
     "types": "src/index.ts",
@@ -32,7 +32,7 @@
     "dependencies": {
         "@types/fs-extra": "^5.0.2",
         "dynamic-queue": "^0.1.2",
-        "fs-extra": "^4.0.3"
+        "fs-extra": "^6.0.0"
     },
     "devDependencies": {
         "mocha": "^5.1.1",
