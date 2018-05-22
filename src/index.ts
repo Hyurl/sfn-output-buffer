@@ -1,8 +1,15 @@
 import { dirname } from "path";
 import { EOL } from "os";
 import { format } from "util";
-import * as fs from "fs-extra";
+import * as fs from "fs";
 import { Queue } from "dynamic-queue";
+import assign = require("lodash/assign");
+import mkdir = require("mkdirp");
+
+const isOldNode = parseFloat(process.version.slice(1)) < 6.0;
+function toBuffer(input: any): Buffer {
+    return isOldNode ? new Buffer(input) : Buffer.from(input);
+}
 
 namespace OutputBuffer {
     export interface Options {
@@ -76,10 +83,10 @@ class OutputBuffer implements OutputBuffer.Options {
         if (typeof filename == "object") {
             options = filename;
         } else {
-            options = Object.assign({ filename }, options);
+            options = assign({ filename }, options);
         }
 
-        Object.assign(this, (<typeof OutputBuffer>this.constructor).Options, options);
+        assign(this, (<typeof OutputBuffer>this.constructor).Options, options);
         this.EOL = this.filename ? EOL : "\n";
         this.queue = new Queue();
 
@@ -126,17 +133,27 @@ class OutputBuffer implements OutputBuffer.Options {
             next();
         };
         let writeFile = (data: string, next: Function) => {
-            fs.ensureDir(dirname(this.filename), err => {
-                if (err)
-                    return handleError(err, next);
+            let dir = dirname(this.filename),
+                write = () => {
+                    fs.writeFile(this.filename, data, "utf8", err => {
+                        if (err)
+                            return handleError(err, next);
 
-                fs.writeFile(this.filename, data, "utf8", err => {
-                    if (err)
-                        return handleError(err, next);
+                        cb();
+                        next();
+                    });
+                };
 
-                    cb();
-                    next();
-                });
+            fs.exists(dir, exists => {
+                if (exists) {
+                    write();
+                } else {
+                    mkdir(dir, err => {
+                        if (err)
+                            return handleError(err, next);
+                        write();
+                    });
+                }
             });
         };
 
@@ -146,14 +163,14 @@ class OutputBuffer implements OutputBuffer.Options {
                     fs.stat(this.filename, (err, stat) => {
                         if (err)
                             return handleError(err, next);
-    
+
                         let size = stat.size + Buffer.byteLength(data);
-    
+
                         if (size < this.fileSize) {
                             fs.appendFile(this.filename, data, err => {
                                 if (err)
                                     return handleError(err, next);
-    
+
                                 cb();
                                 next();
                             });
@@ -191,15 +208,15 @@ class OutputBuffer implements OutputBuffer.Options {
         if (contents === null || contents === undefined) {
             return;
         } else if (typeof contents == "string") {
-            buf = Buffer.from(contents);
+            buf = toBuffer(contents);
         } else if (Buffer.isBuffer(contents)) {
             buf = contents;
         } else {
-            buf = Buffer.from(format(contents));
+            buf = toBuffer(format(contents));
         }
 
         if (this.buffer) {
-            let eolBuf = Buffer.from(this.EOL);
+            let eolBuf = toBuffer(this.EOL);
 
             if (this.size) {
                 let size = this.buffer.length + eolBuf.length + buf.length;

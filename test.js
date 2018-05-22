@@ -1,8 +1,9 @@
+process.setMaxListeners(0);
 require("source-map-support/register");
-const OutputBuffer = require("./");
-const assert = require("assert");
-const { EOL } = require("os");
-const fs = require("fs");
+var OutputBuffer = require("./");
+var assert = require("assert");
+var EOL = require("os").EOL;
+var fs = require("fs");
 
 var file1 = "logs/example1.log",
     file2 = "logs/example2.log",
@@ -13,10 +14,10 @@ var file1 = "logs/example1.log",
         "{ hello: 'world!' }"
     ].join(EOL);
 
-describe("new OutputBuffer()", () => {
-    describe("new OutputBuffer()", () => {
-        it("should create instance without arguments", () => {
-            let ob = new OutputBuffer(),
+describe("new OutputBuffer()", function () {
+    describe("new OutputBuffer()", function () {
+        it("should create instance without arguments", function () {
+            var ob = new OutputBuffer(),
                 expected = Object.assign({}, ob);
 
             delete expected.timer;
@@ -45,9 +46,9 @@ describe("new OutputBuffer()", () => {
         });
     });
 
-    describe("new OutputBuffer(filename: string)", () => {
-        it("should create instance with a filename", () => {
-            let ob = new OutputBuffer(file1),
+    describe("new OutputBuffer(filename: string)", function () {
+        it("should create instance with a filename", function () {
+            var ob = new OutputBuffer(file1),
                 expected = Object.assign({}, ob);
 
             delete expected.timer;
@@ -76,14 +77,14 @@ describe("new OutputBuffer()", () => {
         });
     });
 
-    describe("new OutputBuffer(options: OutputBuffer.Options)", () => {
-        it("should create instance with options", () => {
-            let ob = new OutputBuffer({
+    describe("new OutputBuffer(options: OutputBuffer.Options)", function () {
+        it("should create instance with options", function () {
+            var ob = new OutputBuffer({
                 filename: file2,
                 size: 4096
             });
 
-            let expected = Object.assign({}, ob);
+            var expected = Object.assign({}, ob);
 
             delete expected.queue;
 
@@ -109,9 +110,9 @@ describe("new OutputBuffer()", () => {
         });
     });
 
-    describe("OutputBuffer.prototype.push(...data: any[]), get() and close()", () => {
-        it("should push data into the buffer and log to the console as expected", () => {
-            let ob = new OutputBuffer();
+    describe("OutputBuffer.prototype.push(...data: any[]), get() and close()", function () {
+        it("should push data into the buffer and log to the console as expected", function () {
+            var ob = new OutputBuffer();
 
             ob.push("Hello, World!");
             assert.equal(ob.get(), "Hello, World!");
@@ -132,12 +133,12 @@ describe("new OutputBuffer()", () => {
             assert.ok(ob.closed);
         });
 
-        it("should push data into the buffer and log to a file as expected", (done) => {
+        it("should push data into the buffer and log to a file as expected", function (done) {
             if (fs.existsSync(file1)) {
                 fs.unlinkSync(file1); // remove file if exists.
             }
 
-            let ob = new OutputBuffer(file1);
+            var ob = new OutputBuffer(file1);
 
             ob.push("Hello, World!");
             assert.equal(ob.get(), "Hello, World!");
@@ -153,7 +154,7 @@ describe("new OutputBuffer()", () => {
             ob.close();
             assert.ok(ob.closed);
 
-            setTimeout(() => {
+            setTimeout(function () {
                 assert.ok(fs.existsSync(file1));
                 assert.equal(fs.readFileSync(file1, "utf8"), fileContents + EOL);
 
@@ -168,7 +169,7 @@ describe("new OutputBuffer()", () => {
                 fs.unlinkSync(file2); // remove file if exists.
             }
 
-            let ob = new OutputBuffer(file2, {
+            var ob = new OutputBuffer(file2, {
                 ttl: 2000
             });
 
@@ -186,7 +187,7 @@ describe("new OutputBuffer()", () => {
             ob.close();
             assert.ok(ob.closed);
 
-            setTimeout(() => {
+            setTimeout(function () {
                 assert.ok(fs.existsSync(file2));
                 assert.equal(fs.readFileSync(file2, "utf8"), fileContents + EOL);
 
@@ -194,12 +195,12 @@ describe("new OutputBuffer()", () => {
             }, 2500);
         });
 
-        it("should push data into the buffer and log to a file when the buffer size up to limit or the process exit", () => {
+        it("should push data into the buffer and log to a file when the buffer size up to limit or the process exit", function () {
             if (fs.existsSync(file3)) {
                 fs.unlinkSync(file3); // remove file if exists.
             }
 
-            let ob = new OutputBuffer(file3, {
+            var ob = new OutputBuffer(file3, {
                 size: 4096
             });
 
@@ -217,9 +218,9 @@ describe("new OutputBuffer()", () => {
     });
 });
 
-describe("OutputBuffer.prototype.destroy()", () => {
-    it("should destroy the buffer as expected", () => {
-        let ob = new OutputBuffer(file3, {
+describe("OutputBuffer.prototype.destroy()", function () {
+    it("should destroy the buffer as expected", function () {
+        var ob = new OutputBuffer(file3, {
             size: 4096
         });
 
