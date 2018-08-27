@@ -53,7 +53,7 @@ var OutputBuffer = /** @class */ (function () {
         var data = this.get();
         this.clean(); // clean the buffer before output.
         if (!this.filename) {
-            console.log(data);
+            console.log(data); // flush the content to console.
             return cb();
         }
         data += this.EOL;
@@ -177,11 +177,14 @@ var OutputBuffer = /** @class */ (function () {
     /**
      * Closes the buffer safely, buffer will be flushed before destroying.
      */
-    OutputBuffer.prototype.close = function () {
+    OutputBuffer.prototype.close = function (cb) {
         this.closed = true;
         this.timer ? clearTimeout(this.timer) : null;
-        this.flush();
+        this.flush(cb);
     };
+    return OutputBuffer;
+}());
+(function (OutputBuffer) {
     OutputBuffer.Options = {
         ttl: 1000,
         size: undefined,
@@ -200,7 +203,6 @@ var OutputBuffer = /** @class */ (function () {
         },
         EOL: os_1.EOL
     };
-    return OutputBuffer;
-}());
+})(OutputBuffer || (OutputBuffer = {}));
 module.exports = OutputBuffer;
 //# sourceMappingURL=index.js.map

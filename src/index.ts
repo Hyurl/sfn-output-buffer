@@ -7,39 +7,9 @@ import assign = require("lodash/assign");
 import mkdir = require("mkdirp");
 
 const isOldNode = parseFloat(process.version.slice(1)) < 6.0;
+
 function toBuffer(input: any): Buffer {
     return isOldNode ? new Buffer(input) : Buffer.from(input);
-}
-
-namespace OutputBuffer {
-    export interface Options {
-        /**
-         * How much time that the output buffer should keep contents before
-         * flushing, default value is `1000` ms.
-         */
-        ttl?: number;
-        /**
-         * How much size that the output buffer should keep contents before
-         * flushing. This option is conflicted with `ttl`, set one of them.
-         */
-        size?: number;
-        /** Writes the contents to the target file. */
-        filename?: string;
-        /**
-         * The target file size, when up to limit, the `limitHandler` will be 
-         * called, default vlaue is `2097152` bytes (2 Mb).
-         */
-        fileSize?: number;
-        /** Called when the target file size is up to limit. */
-        limitHandler?: (filename: string, data: string, next: Function) => void;
-        /** Called when any error occoured. */
-        errorHandler?: (err: Error) => void;
-        /**
-         * End of line, when `filename` is set, the default value is 
-         * `os.EOL`, otherwise, it's `\n`.
-          */
-        EOL?: string;
-    }
 }
 
 class OutputBuffer implements OutputBuffer.Options {
@@ -57,25 +27,6 @@ class OutputBuffer implements OutputBuffer.Options {
     private timer: NodeJS.Timer = null;
     private buffer: Buffer = null;
     private queue: Queue;
-
-    static Options: OutputBuffer.Options = {
-        ttl: 1000,
-        size: undefined,
-        filename: undefined,
-        fileSize: 1024 * 1024 * 2, // 2Mb
-        limitHandler: function limitHandler(filename, data, next) {
-            fs.writeFile(filename, data, "utf8", (err) => {
-                if (err)
-                    this.errorHandler(err);
-
-                next();
-            });
-        },
-        errorHandler: function errorHandler(err: Error) {
-            throw err;
-        },
-        EOL
-    }
 
     constructor(options?: OutputBuffer.Options);
     constructor(filename?: string, options?: OutputBuffer.Options);
@@ -121,7 +72,7 @@ class OutputBuffer implements OutputBuffer.Options {
         this.clean(); // clean the buffer before output.
 
         if (!this.filename) {
-            console.log(data);
+            console.log(data); // flush the content to console.
             return cb();
         }
 
@@ -254,10 +205,60 @@ class OutputBuffer implements OutputBuffer.Options {
     /**
      * Closes the buffer safely, buffer will be flushed before destroying.
      */
-    close(): void {
+    close(cb?: () => void): void {
         this.closed = true;
         this.timer ? clearTimeout(this.timer) : null;
-        this.flush();
+        this.flush(cb);
+    }
+}
+
+namespace OutputBuffer {
+    export interface Options {
+        /**
+         * How much time that the output buffer should keep contents before
+         * flushing, default value is `1000` ms.
+         */
+        ttl?: number;
+        /**
+         * How much size that the output buffer should keep contents before
+         * flushing. This option is conflicted with `ttl`, set one of them.
+         */
+        size?: number;
+        /** Writes the contents to the target file. */
+        filename?: string;
+        /**
+         * The target file size, when up to limit, the `limitHandler` will be 
+         * called, default vlaue is `2097152` bytes (2 Mb).
+         */
+        fileSize?: number;
+        /** Called when the target file size is up to limit. */
+        limitHandler?: (filename: string, data: string, next: Function) => void;
+        /** Called when any error occoured. */
+        errorHandler?: (err: Error) => void;
+        /**
+         * End of line, when `filename` is set, the default value is 
+         * `os.EOL`, otherwise, it's `\n`.
+          */
+        EOL?: string;
+    }
+
+    export const Options: Options = {
+        ttl: 1000,
+        size: undefined,
+        filename: undefined,
+        fileSize: 1024 * 1024 * 2, // 2Mb
+        limitHandler: function limitHandler(filename, data, next) {
+            fs.writeFile(filename, data, "utf8", (err) => {
+                if (err)
+                    this.errorHandler(err);
+
+                next();
+            });
+        },
+        errorHandler: function errorHandler(err: Error) {
+            throw err;
+        },
+        EOL
     }
 }
 
