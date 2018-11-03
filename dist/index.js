@@ -1,130 +1,106 @@
 "use strict";
-var path_1 = require("path");
-var os_1 = require("os");
-var util_1 = require("util");
-var fs = require("fs");
-var dynamic_queue_1 = require("dynamic-queue");
-var assign = require("lodash/assign");
-var mkdir = require("mkdirp");
-var isOldNode = parseFloat(process.version.slice(1)) < 6.0;
-function toBuffer(input) {
-    return isOldNode ? new Buffer(input) : Buffer.from(input);
-}
-var OutputBuffer = /** @class */ (function () {
-    function OutputBuffer(filename, options) {
-        if (options === void 0) { options = null; }
-        var _this = this;
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const path_1 = require("path");
+const os_1 = require("os");
+const util_1 = require("util");
+const fs = require("fs-extra");
+const CPQueue = require("cp-queue");
+class OutputBuffer {
+    constructor(filename, options = null) {
         /** Whether the output buffer is closed. */
         this.closed = false;
         this.timer = null;
         this.buffer = null;
+        this.queue = CPQueue.connect(() => { });
         if (typeof filename == "object") {
             options = filename;
         }
         else {
-            options = assign({ filename: filename }, options);
+            options = Object.assign({ filename }, options);
         }
-        assign(this, this.constructor.Options, options);
+        Object.assign(this, this.constructor.Options, options);
         this.EOL = this.filename ? os_1.EOL : "\n";
-        this.queue = new dynamic_queue_1.Queue();
         if (this.size) {
             this.ttl = undefined;
-            process.on("beforeExit", function (code) {
+            process.on("beforeExit", (code) => {
                 if (!code) {
-                    _this.close();
+                    this.close();
                 }
             });
         }
         else {
-            var next_1 = function () {
-                _this.timer = setTimeout(function () {
-                    _this.flush(next_1);
-                }, _this.ttl);
+            let next = () => {
+                this.timer = setTimeout(() => {
+                    this.flush(next);
+                }, this.ttl);
             };
-            next_1();
+            next();
         }
     }
     /** Flushes the output buffer immediately. */
-    OutputBuffer.prototype.flush = function (cb) {
-        var _this = this;
-        cb = cb || (function () { });
+    flush(cb) {
+        cb = cb || (() => { });
         if (this.buffer === null || this.buffer.length === 0)
             return cb();
-        var data = this.get();
+        let data = this.get();
         this.clean(); // clean the buffer before output.
         if (!this.filename) {
             console.log(data); // flush the content to console.
             return cb();
         }
         data += this.EOL;
-        var handleError = function (err, next) {
-            _this.errorHandler.call(_this, err);
+        let handleError = (err, next) => {
+            this.errorHandler.call(this, err);
             cb();
             next();
         };
-        var writeFile = function (data, next) {
-            var dir = path_1.dirname(_this.filename), write = function () {
-                fs.writeFile(_this.filename, data, "utf8", function (err) {
-                    if (err)
-                        return handleError(err, next);
-                    cb();
-                    next();
-                });
-            };
-            fs.exists(dir, function (exists) {
-                if (exists) {
-                    write();
-                }
-                else {
-                    mkdir(dir, function (err) {
-                        if (err)
-                            return handleError(err, next);
-                        write();
-                    });
-                }
-            });
-        };
-        this.queue.push(function (next) {
-            fs.exists(_this.filename, function (exists) {
-                if (exists) {
-                    fs.stat(_this.filename, function (err, stat) {
-                        if (err)
-                            return handleError(err, next);
-                        var size = stat.size + Buffer.byteLength(data);
-                        if (size < _this.fileSize) {
-                            fs.appendFile(_this.filename, data, function (err) {
-                                if (err)
-                                    return handleError(err, next);
-                                cb();
-                                next();
-                            });
-                        }
-                        else {
-                            _this.limitHandler.call(_this, _this.filename, data, function () {
-                                writeFile(data, next);
-                            });
-                        }
-                    });
-                }
-                else {
-                    return writeFile(data, next);
-                }
-            });
+        let writeFile = (data, next) => __awaiter(this, void 0, void 0, function* () {
+            yield fs.ensureDir(path_1.dirname(this.filename));
+            yield fs.writeFile(this.filename, data, "utf8");
+            cb();
+            next();
         });
-    };
+        this.queue.push((next) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                if (yield fs.pathExists(this.filename)) {
+                    let stat = yield fs.stat(this.filename), size = stat.size + Buffer.byteLength(data);
+                    if (size < this.fileSize) {
+                        yield fs.appendFile(this.filename, data);
+                        cb();
+                        next();
+                    }
+                    else {
+                        this.limitHandler.call(this, this.filename, data, () => {
+                            writeFile(data, next).catch(err => {
+                                handleError(err, next);
+                            });
+                        });
+                    }
+                }
+                else {
+                    yield writeFile(data, next);
+                }
+            }
+            catch (err) {
+                handleError(err, next);
+            }
+        }));
+    }
     /** Pushes data into the buffer. */
-    OutputBuffer.prototype.push = function () {
-        var data = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            data[_i] = arguments[_i];
-        }
+    push(...data) {
         if (this.closed)
             throw new Error("Cannot push data after closing the buffer.");
-        var contents;
-        var buf;
+        let contents;
+        let buf;
         if (data.length > 1) {
-            for (var _a = 0, data_1 = data; _a < data_1.length; _a++) {
-                var part = data_1[_a];
+            for (let part of data) {
                 this.push(part);
             }
             return;
@@ -136,18 +112,18 @@ var OutputBuffer = /** @class */ (function () {
             return;
         }
         else if (typeof contents == "string") {
-            buf = toBuffer(contents);
+            buf = Buffer.from(contents);
         }
         else if (Buffer.isBuffer(contents)) {
             buf = contents;
         }
         else {
-            buf = toBuffer(util_1.format(contents));
+            buf = Buffer.from(util_1.format(contents));
         }
         if (this.buffer) {
-            var eolBuf = toBuffer(this.EOL);
+            let eolBuf = Buffer.from(this.EOL);
             if (this.size) {
-                var size = this.buffer.length + eolBuf.length + buf.length;
+                let size = this.buffer.length + eolBuf.length + buf.length;
                 if (size >= this.size) {
                     this.flush();
                     this.buffer = buf;
@@ -159,31 +135,30 @@ var OutputBuffer = /** @class */ (function () {
         else {
             this.buffer = buf;
         }
-    };
+    }
     /** Gets buffer contents. */
-    OutputBuffer.prototype.get = function () {
+    get() {
         return this.buffer ? this.buffer.toString() : "";
-    };
+    }
     /** Cleans buffer contents without flushing. */
-    OutputBuffer.prototype.clean = function () {
+    clean() {
         this.buffer = null;
-    };
+    }
     /** Destroys the buffer without flushing. */
-    OutputBuffer.prototype.destroy = function () {
+    destroy() {
         this.closed = true;
         this.timer ? clearTimeout(this.timer) : null;
         this.clean();
-    };
+    }
     /**
      * Closes the buffer safely, buffer will be flushed before destroying.
      */
-    OutputBuffer.prototype.close = function (cb) {
+    close(cb) {
         this.closed = true;
         this.timer ? clearTimeout(this.timer) : null;
         this.flush(cb);
-    };
-    return OutputBuffer;
-}());
+    }
+}
 (function (OutputBuffer) {
     OutputBuffer.Options = {
         ttl: 1000,
@@ -191,10 +166,9 @@ var OutputBuffer = /** @class */ (function () {
         filename: undefined,
         fileSize: 1024 * 1024 * 2,
         limitHandler: function limitHandler(filename, data, next) {
-            var _this = this;
-            fs.writeFile(filename, data, "utf8", function (err) {
+            fs.writeFile(filename, data, "utf8", (err) => {
                 if (err)
-                    _this.errorHandler(err);
+                    this.errorHandler(err);
                 next();
             });
         },

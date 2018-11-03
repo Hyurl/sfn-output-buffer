@@ -240,4 +240,10 @@ describe("OutputBuffer.prototype.destroy()", function () {
         assert.equal(ob.get(), "");
         assert.ok(ob.closed);
     });
+
+    it("should terminate the program if not error occurred", function () {
+        setTimeout(() => {
+            process.exit();
+        }, 500);
+    });
 });
