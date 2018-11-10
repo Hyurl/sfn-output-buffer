@@ -2,7 +2,7 @@ import { dirname } from "path";
 import { EOL } from "os";
 import { format } from "util";
 import * as fs from "fs-extra";
-import * as CPQueue from "cp-queue";
+import connectQueue from "ipqueue";
 
 class OutputBuffer implements OutputBuffer.Options {
     readonly ttl: number;
@@ -18,7 +18,7 @@ class OutputBuffer implements OutputBuffer.Options {
 
     private timer: NodeJS.Timer = null;
     private buffer: Buffer = null;
-    private queue = CPQueue.connect(() => { });
+    private queue = connectQueue();
 
     constructor(options?: OutputBuffer.Options);
     constructor(filename?: string, options?: OutputBuffer.Options);

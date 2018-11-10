@@ -11,14 +11,14 @@ const path_1 = require("path");
 const os_1 = require("os");
 const util_1 = require("util");
 const fs = require("fs-extra");
-const CPQueue = require("cp-queue");
+const ipqueue_1 = require("ipqueue");
 class OutputBuffer {
     constructor(filename, options = null) {
         /** Whether the output buffer is closed. */
         this.closed = false;
         this.timer = null;
         this.buffer = null;
-        this.queue = CPQueue.connect(() => { });
+        this.queue = ipqueue_1.default();
         if (typeof filename == "object") {
             options = filename;
         }
