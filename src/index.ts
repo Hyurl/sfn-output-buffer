@@ -2,7 +2,9 @@ import { dirname } from "path";
 import { EOL } from "os";
 import { format } from "util";
 import * as fs from "fs-extra";
-import connectQueue from "ipqueue";
+import connectQueue, { Queue as IPQueue } from "ipqueue";
+import DynamicQueue from "dynamic-queue";
+import hash = require("string-hash");
 
 class OutputBuffer implements OutputBuffer.Options {
     readonly ttl: number;
@@ -18,7 +20,7 @@ class OutputBuffer implements OutputBuffer.Options {
 
     private timer: NodeJS.Timer = null;
     private buffer: Buffer = null;
-    private queue = connectQueue();
+    private queue: DynamicQueue | IPQueue;
 
     constructor(options?: OutputBuffer.Options);
     constructor(filename?: string, options?: OutputBuffer.Options);
@@ -31,6 +33,10 @@ class OutputBuffer implements OutputBuffer.Options {
 
         Object.assign(this, (<typeof OutputBuffer>this.constructor).Options, options);
         this.EOL = this.filename ? EOL : "\n";
+
+        this.queue = this.filename
+            ? connectQueue(String(hash(this.filename)), 2000)
+            : new DynamicQueue();
 
         if (this.size) {
             this.ttl = undefined;
@@ -81,7 +87,9 @@ class OutputBuffer implements OutputBuffer.Options {
             next();
         };
 
-        this.queue.push(async (next) => {
+        // Although DynamicQueue and IPQueue have different signatures, they 
+        // have the same mechanism of pushing and running tasks.
+        (<DynamicQueue>this.queue).push(async (next) => {
             try {
                 if (await fs.pathExists(this.filename)) {
                     let stat = await fs.stat(this.filename),

@@ -12,13 +12,14 @@ const os_1 = require("os");
 const util_1 = require("util");
 const fs = require("fs-extra");
 const ipqueue_1 = require("ipqueue");
+const dynamic_queue_1 = require("dynamic-queue");
+const hash = require("string-hash");
 class OutputBuffer {
     constructor(filename, options = null) {
         /** Whether the output buffer is closed. */
         this.closed = false;
         this.timer = null;
         this.buffer = null;
-        this.queue = ipqueue_1.default();
         if (typeof filename == "object") {
             options = filename;
         }
@@ -27,6 +28,9 @@ class OutputBuffer {
         }
         Object.assign(this, this.constructor.Options, options);
         this.EOL = this.filename ? os_1.EOL : "\n";
+        this.queue = this.filename
+            ? ipqueue_1.default(String(hash(this.filename)), 2000)
+            : new dynamic_queue_1.default();
         if (this.size) {
             this.ttl = undefined;
             process.on("beforeExit", (code) => {
@@ -67,6 +71,8 @@ class OutputBuffer {
             cb();
             next();
         });
+        // Although DynamicQueue and IPQueue have different signatures, they 
+        // have the same mechanism of pushing and running tasks.
         this.queue.push((next) => __awaiter(this, void 0, void 0, function* () {
             try {
                 if (yield fs.pathExists(this.filename)) {
